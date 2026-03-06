@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Crappy Bird - Beat</title>
+    <title>Crappy Bird Beat - Maps Update</title>
     <style>
       body {
         margin: 0;
@@ -159,6 +159,18 @@
           gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
           osc.start();
           osc.stop(now + 0.5);
+        } else if (type === "poop") {
+          // FART SOUND SYNTHESIS - Quieter
+          osc.type = "sawtooth";
+          let startFreq = 80 + Math.random() * 40;
+          osc.frequency.setValueAtTime(startFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(10, now + 0.4);
+
+          gainNode.gain.setValueAtTime(0.05, now); // Reduced volume from 0.3 to 0.05
+          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+          osc.start();
+          osc.stop(now + 0.4);
         }
       }
 
@@ -244,7 +256,7 @@
         gameOver: { restartBtn: {}, menuBtn: {} },
       };
 
-      // --- INPUT HANDLING (SPLIT INTO DOWN/UP for Beat Making) ---
+      // --- INPUT HANDLING ---
       function handleInputDown(e) {
         let type = e.type;
         if (type === "touchstart") e.preventDefault();
@@ -321,7 +333,7 @@
           }
         } else if (currentState === state.getReady) {
           bird.flap();
-          currentState = state.game; // Let the bird generate sound naturally
+          currentState = state.game;
         } else if (currentState === state.game) {
           if (bird.rocketTimer <= 0) {
             bird.flap();
@@ -340,7 +352,7 @@
       function handleInputUp(e) {
         if (e.type === "keyup" && e.code !== "Space") return;
         if (currentState === state.game) {
-          stopSynth(); // End the sustained note when finger/mouse/key lifts
+          stopSynth();
         }
       }
 
@@ -394,6 +406,8 @@
         { name: "CITY", bgColor: "#70c5ce" },
         { name: "STORM", bgColor: "#2c3e50" },
         { name: "HILLS", bgColor: "#87CEEB" },
+        { name: "SPACE", bgColor: "#0b0c10" },
+        { name: "MARS", bgColor: "#8c3b1a" },
       ];
 
       function clickSkinItem(id) {
@@ -430,17 +444,13 @@
         ctx.lineWidth = 3;
         ctx.font = "60px Impact";
         ctx.textAlign = "center";
-        ctx.fillText("CRAPPY BIRD  BEAT", canvas.width / 2, canvas.height / 3);
-        ctx.strokeText(
-          "CRAPPY BIRD  BEAT",
-          canvas.width / 2,
-          canvas.height / 3,
-        );
+        ctx.fillText("CRAPPY BIRD BEAT", canvas.width / 2, canvas.height / 4);
+        ctx.strokeText("CRAPPY BIRD BEAT", canvas.width / 2, canvas.height / 4);
 
         let btnW = 200,
           btnH = 60,
           gap = 15;
-        let startY = canvas.height / 2 - 20;
+        let startY = canvas.height / 2 - 40;
         let startX = canvas.width / 2 - btnW / 2;
 
         ui.menu.startBtn = { x: startX, y: startY, w: btnW, h: btnH };
@@ -569,34 +579,44 @@
         ctx.fillText("SELECT MAP", canvas.width / 2, 50);
 
         ui.map.items = [];
-        let itemW = 200,
-          itemH = 100,
-          gap = 20,
-          startY = 100;
-        let startX = canvas.width / 2 - itemW / 2;
+        let itemW = 160,
+          itemH = 60,
+          gap = 15,
+          startY = 90;
+        let cols = Math.floor((canvas.width - 20) / (itemW + gap));
+        if (cols < 1) cols = 1;
+        let gridW = cols * itemW + (cols - 1) * gap;
+        let startX = (canvas.width - gridW) / 2;
 
         for (let i = 0; i < themeDB.length; i++) {
-          let y = startY + i * (itemH + gap);
+          let col = i % cols;
+          let row = Math.floor(i / cols);
+          let x = startX + col * (itemW + gap);
+          let y = startY + row * (itemH + gap);
+
           let isSelected = selectedTheme === i;
+
           ctx.fillStyle = themeDB[i].bgColor;
-          ctx.fillRect(startX, y, itemW, itemH);
+          ctx.fillRect(x, y, itemW, itemH);
           ctx.lineWidth = isSelected ? 5 : 2;
           ctx.strokeStyle = isSelected ? "#FFF" : "#000";
-          ctx.strokeRect(startX, y, itemW, itemH);
+          ctx.strokeRect(x, y, itemW, itemH);
+
           ctx.fillStyle = "#FFF";
-          ctx.font = "30px Impact";
+          ctx.font = "25px Impact";
           ctx.strokeStyle = "#000";
           ctx.lineWidth = 2;
-          ctx.fillText(themeDB[i].name, canvas.width / 2, y + 60);
-          ctx.strokeText(themeDB[i].name, canvas.width / 2, y + 60);
+          ctx.fillText(themeDB[i].name, x + itemW / 2, y + 40);
+          ctx.strokeText(themeDB[i].name, x + itemW / 2, y + 40);
+
           if (isSelected) {
             ctx.fillStyle = "#73bf2e";
-            ctx.font = "15px Arial";
-            ctx.fillText("SELECTED", canvas.width / 2, y + 20);
+            ctx.font = "12px Arial";
+            ctx.fillText("SELECTED", x + itemW / 2, y + 15);
           }
           ui.map.items.push({
             id: i,
-            btn: { x: startX, y: y, w: itemW, h: itemH },
+            btn: { x: x, y: y, w: itemW, h: itemH },
           });
         }
       }
@@ -649,6 +669,7 @@
         cityData: [],
         mountainData: [],
         rain: [],
+        stars: [],
         patternWidth: 2000,
         xPos: 0,
         xClouds: 0,
@@ -656,6 +677,7 @@
           this.cityData = [];
           this.mountainData = [];
           this.rain = [];
+          this.stars = [];
           let currentX = 0;
           while (currentX < this.patternWidth) {
             let w = 30 + Math.random() * 50;
@@ -677,6 +699,12 @@
               l: Math.random() * 20 + 10,
               v: Math.random() * 5 + 10,
             });
+          for (let i = 0; i < 150; i++)
+            this.stars.push({
+              x: Math.random() * canvas.width,
+              y: Math.random() * canvas.height,
+              s: Math.random() * 2 + 1,
+            });
         },
         update: function () {
           if (currentState === state.over) return;
@@ -696,6 +724,7 @@
         draw: function () {
           ctx.fillStyle = themeDB[selectedTheme].bgColor;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
+
           const drawPattern = (offset, drawFn) => {
             ctx.save();
             ctx.translate(offset, 0);
@@ -708,19 +737,35 @@
               ctx.restore();
             }
           };
-          ctx.fillStyle = selectedTheme === 1 ? "#5d6d7e" : "#fff";
-          drawPattern(this.xClouds, () => {
-            for (let i = 0; i < this.patternWidth; i += 300) {
-              let yOffset = canvas.height - fg.h - 100;
-              ctx.beginPath();
-              ctx.arc(i + 60, yOffset, 30, 0, Math.PI * 2);
-              ctx.arc(i + 100, yOffset - 10, 40, 0, Math.PI * 2);
-              ctx.arc(i + 140, yOffset, 30, 0, Math.PI * 2);
-              ctx.fill();
+
+          // Draw Stars for Space & Mars
+          if (selectedTheme === 3 || selectedTheme === 4) {
+            ctx.fillStyle = "#FFF";
+            for (let star of this.stars) {
+              let sx = (star.x + this.xPos * 0.2) % canvas.width;
+              if (sx < 0) sx += canvas.width;
+              ctx.globalAlpha = Math.random() * 0.5 + 0.5; // twinkle
+              ctx.fillRect(sx, star.y, star.s, star.s);
             }
-          });
-          if (selectedTheme === 2) {
-            ctx.fillStyle = "#6b5b95";
+            ctx.globalAlpha = 1.0;
+          } else {
+            // Draw Clouds for City, Storm, Hills
+            ctx.fillStyle = selectedTheme === 1 ? "#5d6d7e" : "#fff";
+            drawPattern(this.xClouds, () => {
+              for (let i = 0; i < this.patternWidth; i += 300) {
+                let yOffset = canvas.height - fg.h - 100;
+                ctx.beginPath();
+                ctx.arc(i + 60, yOffset, 30, 0, Math.PI * 2);
+                ctx.arc(i + 100, yOffset - 10, 40, 0, Math.PI * 2);
+                ctx.arc(i + 140, yOffset, 30, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            });
+          }
+
+          if (selectedTheme === 2 || selectedTheme === 4) {
+            // Hills or Mars
+            ctx.fillStyle = selectedTheme === 4 ? "#d84315" : "#6b5b95"; // Mars mountains vs Purple mountains
             drawPattern(this.xPos, () => {
               for (let m of this.mountainData) {
                 ctx.beginPath();
@@ -730,13 +775,16 @@
                 ctx.fill();
               }
             });
-          } else {
+          } else if (selectedTheme === 0 || selectedTheme === 1) {
+            // City or Storm
             ctx.fillStyle = selectedTheme === 1 ? "#34495e" : "#a3e4cb";
             drawPattern(this.xPos, () => {
               for (let b of this.cityData)
                 ctx.fillRect(b.x, canvas.height - fg.h - b.h, b.w, b.h);
             });
           }
+          // Space (3) has no background buildings/mountains, just stars
+
           if (selectedTheme === 1) {
             ctx.strokeStyle = "rgba(174,194,224,0.5)";
             ctx.lineWidth = 1;
@@ -757,6 +805,7 @@
           let dirt = "#ded895";
           let grass = "#73bf2e";
           let border = "#558c22";
+
           if (selectedTheme === 1) {
             dirt = "#546E7A";
             grass = "#2e4053";
@@ -765,7 +814,17 @@
             dirt = "#8d6e63";
             grass = "#558b2f";
             border = "#33691e";
-          }
+          } else if (selectedTheme === 3) {
+            dirt = "#424242";
+            grass = "#616161";
+            border = "#212121";
+          } // Space/Moon
+          else if (selectedTheme === 4) {
+            dirt = "#a13311";
+            grass = "#bf360c";
+            border = "#5d1000";
+          } // Mars
+
           ctx.fillStyle = dirt;
           ctx.fillRect(0, canvas.height - this.h, canvas.width, this.h);
           ctx.fillStyle = grass;
@@ -796,8 +855,8 @@
         w: 34,
         h: 24,
         speed: 0,
-        gravity: 0.19,
-        jump: 5.8,
+        gravity: 0.12, // Reduced for smoother glide
+        jump: 4.2, // Reduced to balance lower gravity
         rotation: 0,
         shieldTimer: 0,
         multiplierTimer: 0,
@@ -899,15 +958,14 @@
           }
 
           // 2. Play Melodic Note based on Height (Y position)
-          // Constrain bird position into a 0.0 to 1.0 ratio
           let ratio = 1 - this.y / canvas.height;
           ratio = Math.max(0, Math.min(1, ratio));
 
-          // Pick note from pentatonic array
           let noteIndex = Math.floor(ratio * (pentatonicScale.length - 1));
           let freq = pentatonicScale[noteIndex];
 
           startSynth(freq);
+          playSound("poop");
 
           // Spawn poop unless using rocket
           if (this.rocketTimer <= 0) {
@@ -956,9 +1014,9 @@
         if (currentState === state.over) return;
         for (let i = 0; i < poops.length; i++) {
           let p = poops[i];
-          p.y += p.vy; // Fall down
-          p.x -= getCurrentSpeed(); // Move with world
-          p.life -= 0.01; // Fade
+          p.y += p.vy;
+          p.x -= getCurrentSpeed();
+          p.life -= 0.01;
           if (p.life <= 0 || p.y > canvas.height) {
             poops.splice(i, 1);
             i--;
@@ -1128,9 +1186,38 @@
               bird.rocketTimer > 0 ||
               bird.gracePeriod > 0;
             ctx.globalAlpha = isInvincible && p.x < bird.x + 100 ? 0.6 : 1.0;
-            ctx.fillStyle = selectedTheme === 1 ? "#546E7A" : "#73bf2e";
-            ctx.strokeStyle = "#553d00";
-            ctx.lineWidth = 2;
+
+            // Dynamic pipe colors based on theme
+            let pipeColor = "#73bf2e";
+            let pipeBorder = "#553d00";
+            if (selectedTheme === 1) {
+              pipeColor = "#546E7A";
+              pipeBorder = "#1B2631";
+            } else if (selectedTheme === 2) {
+              pipeColor = "#9e9d24";
+              pipeBorder = "#33691e";
+            } // Olive green
+            else if (selectedTheme === 3) {
+              pipeColor = "#37474F";
+              pipeBorder = "#00E676";
+            } // Space: Metal with neon green border
+            else if (selectedTheme === 4) {
+              pipeColor = "#FF7043";
+              pipeBorder = "#BF360C";
+            } // Mars
+
+            ctx.fillStyle = pipeColor;
+            ctx.strokeStyle = pipeBorder;
+            ctx.lineWidth = selectedTheme === 3 ? 3 : 2;
+
+            // Space neon glow effect
+            if (selectedTheme === 3) {
+              ctx.shadowColor = "#00E676";
+              ctx.shadowBlur = 15;
+            } else {
+              ctx.shadowBlur = 0;
+            }
+
             if (topY > 0) {
               ctx.fillRect(p.x, 0, this.w, topY);
               ctx.strokeRect(p.x, -2, this.w, topY + 2);
@@ -1144,6 +1231,8 @@
               ctx.fillRect(p.x - 4, bottomY, this.w + 8, 24);
               ctx.strokeRect(p.x - 4, bottomY, this.w + 8, 24);
             }
+
+            ctx.shadowBlur = 0; // reset shadow
             ctx.globalAlpha = 1.0;
           }
         },
@@ -1166,7 +1255,6 @@
               INITIAL_PIPE_SPAWN_RATE *
                 (INITIAL_BASE_SPEED / getCurrentSpeed()),
             );
-            // Make sure it doesn't get too fast
             currentRate = Math.max(currentRate, 30);
 
             if (frames % currentRate == 0) {
@@ -1370,6 +1458,3 @@
     </script>
   </body>
 </html>
-
-reduce the sound of fart a bit more and the bird falls a bit quickley down too,
-i want to it to smoothly down as if its gliding
