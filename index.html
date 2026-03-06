@@ -37,8 +37,12 @@
       const ctx = canvas.getContext("2d");
 
       // --- SETTINGS ---
-      const BASE_SPEED = 5;
-      const PIPE_SPAWN_RATE = 115;
+      const INITIAL_BASE_SPEED = 5;
+      const MAX_BASE_SPEED = 12;
+      const SPEED_INCREMENT = 0.5;
+      const FRAMES_PER_INCREMENT = 600; // Increase speed roughly every 10 seconds
+
+      const INITIAL_PIPE_SPAWN_RATE = 115;
       const POWERUP_DURATION = 300;
       const ROCKET_DURATION = 180;
 
@@ -68,6 +72,7 @@
       let score = 0;
       let pendingBuy = null;
       let poops = [];
+      let baseSpeed = INITIAL_BASE_SPEED;
 
       const state = {
         menu: 0,
@@ -367,14 +372,15 @@
         poops = [];
         score = 0;
         frames = 0;
+        baseSpeed = INITIAL_BASE_SPEED; // Reset base speed
         currentState = state.getReady;
         bg.init();
         stopSynth();
       }
 
       function getCurrentSpeed() {
-        if (bird.rocketTimer > 0) return BASE_SPEED * 2.5;
-        return BASE_SPEED;
+        if (bird.rocketTimer > 0) return baseSpeed * 2.5;
+        return baseSpeed;
       }
 
       const skinDB = [
@@ -674,7 +680,7 @@
         },
         update: function () {
           if (currentState === state.over) return;
-          let s = getCurrentSpeed() / BASE_SPEED;
+          let s = getCurrentSpeed() / INITIAL_BASE_SPEED; // Ratio based on initial
           this.xPos = (this.xPos - 0.5 * s) % this.patternWidth;
           this.xClouds = (this.xClouds - 0.25 * s) % this.patternWidth;
           if (selectedTheme === 1) {
@@ -1143,12 +1149,26 @@
         },
         update: function () {
           if (currentState !== state.game) return;
+
+          // Speed increase logic
+          if (
+            frames > 0 &&
+            frames % FRAMES_PER_INCREMENT === 0 &&
+            baseSpeed < MAX_BASE_SPEED
+          ) {
+            baseSpeed += SPEED_INCREMENT;
+          }
+
           if (bird.rocketTimer > 0 && bird.rocketTimer < 60) {
           } else {
-            let currentRate =
-              bird.rocketTimer > 0
-                ? Math.floor(PIPE_SPAWN_RATE / 2.5)
-                : PIPE_SPAWN_RATE;
+            // Adjust spawn rate based on the current speed
+            let currentRate = Math.floor(
+              INITIAL_PIPE_SPAWN_RATE *
+                (INITIAL_BASE_SPEED / getCurrentSpeed()),
+            );
+            // Make sure it doesn't get too fast
+            currentRate = Math.max(currentRate, 30);
+
             if (frames % currentRate == 0) {
               let min = 50 + this.gap / 2;
               let max = canvas.height - fg.h - 50 - this.gap / 2;
@@ -1350,3 +1370,6 @@
     </script>
   </body>
 </html>
+
+reduce the sound of fart a bit more and the bird falls a bit quickley down too,
+i want to it to smoothly down as if its gliding
